@@ -14,13 +14,14 @@
  *        deque                 : A class that represents a deque
  *        deque::iterator       : An iterator through a deque
  * Author
- *    <your names here>
+ *    Sara Fisk, Willaim Patrick-Barr
  ************************************************************************/
 
 #pragma once
 
 // Debug stuff
 #include <cassert>
+#include <memory>
 
 class TestDeque;    // forward declaration for TestDeque unit test class
 
