@@ -133,7 +133,10 @@ private:
    // fetch array index from the deque index
    int iaFromID(int id) const
    {
-      return -99;
+      // logical id 0..numElements-1 → physical array index with wrap
+      int ia = iaFront + id;
+      ia %= static_cast<int>(numCapacity);
+      return ia;
    }
    void resize(int newCapacity = 0);
 
@@ -327,12 +330,12 @@ deque <T> & deque <T> :: operator = (const deque <T> & rhs)
 template <class T>
 const T & deque <T> :: front() const 
 {
-   return *(new T);
+   return data[iaFront];
 }
 template <class T>
 T& deque <T> ::front()
 {
-   return *(new T);
+   return data[iaFront];
 }
 
 /**************************************************
@@ -342,12 +345,16 @@ T& deque <T> ::front()
 template <class T>
 const T & deque <T> :: back() const 
 {
-   return *(new T);
+   size_t idBack = numElements - 1;
+   int ia = iaFromID(idBack);
+   return data[ia];
 }
 template <class T>
 T& deque <T> ::back()
 {
-   return *(new T);
+   size_t idBack = numElements - 1;
+   int ia = iaFromID(idBack);
+   return data[ia];
 }
 
 /**************************************************
@@ -357,12 +364,14 @@ T& deque <T> ::back()
 template <class T>
 const T& deque <T> ::operator[](size_t index) const
 {
-   return *(new T);
+   int ia = iaFromID(index);
+   return data[ia];
 }
 template <class T>
 T& deque <T> ::operator[](size_t index)
 {
-   return *(new T);
+   int ia = iaFromID(index);
+   return data[ia];
 }
 
 /*****************************************************
