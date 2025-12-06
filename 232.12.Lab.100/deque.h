@@ -49,13 +49,27 @@ public:
    // 
    // Construct
    //
-   deque() 
-   { 
+   deque() : data(nullptr),
+             numCapacity(0),
+             numElements(0),
+             iaFront(0)
+   {
    }
    deque(int newCapacity);
    deque(const deque <T> & rhs);
    ~deque()
-   { 
+   {
+      if (numCapacity > 0)
+      {
+         assert(data != nullptr);
+         delete [] data;
+      }
+      
+      // not strictly required, but keeps things in a known state
+      data        = nullptr;
+      numCapacity = 0;
+      numElements = 0;
+      iaFront     = 0;
    }
 
    //
@@ -221,7 +235,19 @@ private:
  ***************************************************/
 template <class T>
 deque <T> :: deque(int newCapacity)
+   : data(nullptr),
+     numCapacity(0),
+     numElements(0),
+     iaFront(0)
 {
+   assert(newCapacity >= 0);
+
+   if (newCapacity > 0)
+   {
+      numCapacity = static_cast<size_t>(newCapacity);
+      data        = new T[numCapacity];   // default-constructed slots
+      // numElements stays 0; deque is logically empty but has storage
+   }
 }
 
 /****************************************************
@@ -229,7 +255,22 @@ deque <T> :: deque(int newCapacity)
  ***************************************************/
 template <class T>
 deque <T> :: deque(const deque <T> & rhs)
+   : data(nullptr),
+     numCapacity(0),
+     numElements(0),
+     iaFront(0)
 {
+   // empty source: leave this as an empty deque
+   if (rhs.numCapacity == 0 || rhs.data == nullptr)
+      return;
+
+   numCapacity = rhs.numCapacity;
+   numElements = rhs.numElements;
+   iaFront     = rhs.iaFront;
+
+   data = new T[numCapacity];
+   for (size_t i = 0; i < numCapacity; ++i)
+      data[i] = rhs.data[i];
 }
 
 
@@ -239,8 +280,44 @@ deque <T> :: deque(const deque <T> & rhs)
 template <class T>
 deque <T> & deque <T> :: operator = (const deque <T> & rhs)
 {
+   // self-assignment guard
+   if (this == &rhs)
+      return *this;
+
+   // if source is empty, just clear destination but keep capacity
+   if (rhs.numElements == 0)
+   {
+      numElements = 0;
+      iaFront     = 0;
+      return *this;
+   }
+
+   // if we don't have enough capacity, reallocate
+   if (rhs.numElements > numCapacity)
+   {
+      if (data != nullptr)
+         delete [] data;
+
+      numCapacity = rhs.numElements;
+      data        = new T[numCapacity];
+   }
+
+   // copy elements in logical order so that our iaFront = 0
+   numElements = rhs.numElements;
+   iaFront     = 0;
+
+   for (size_t id = 0; id < rhs.numElements; ++id)
+   {
+      // logical index id → rhs array index
+      int iaSrc = (rhs.iaFront + static_cast<int>(id)) %
+                  static_cast<int>(rhs.numCapacity);
+
+      data[id] = rhs.data[iaSrc];
+   }
+
    return *this;
 }
+
 
 
 /**************************************************
