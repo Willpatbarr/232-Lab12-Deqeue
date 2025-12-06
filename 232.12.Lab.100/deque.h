@@ -394,16 +394,44 @@ void deque <T> :: pop_front()
  * DEQUE : PUSH_BACK
  ******************************************************/
 template <class T>
-void deque <T> :: push_back(const T & t) 
+void deque <T> :: push_back(const T & t)
 {
+   // Grow if we are full
+   if (numElements == numCapacity)
+      resize();   // uses default param to choose new capacity
+
+   // At this point numCapacity > 0
+   int ia = (iaFront + static_cast<int>(numElements)) %
+            static_cast<int>(numCapacity);
+
+   data[ia] = t;
+   ++numElements;
 }
 
 /******************************************************
  * DEQUE : PUSH_FRONT
  ******************************************************/
 template <class T>
-void deque <T> :: push_front(const T & t) 
+void deque <T> :: push_front(const T & t)
 {
+   // Grow if we are full
+   if (numElements == numCapacity)
+      resize();   // uses default param to grow
+
+   // If we were empty, keep iaFront at 0 (constructors should set it to 0)
+   if (numElements == 0)
+   {
+      iaFront = 0;
+   }
+   else
+   {
+      // Move front one step backward in circular fashion
+      iaFront = (iaFront - 1 + static_cast<int>(numCapacity)) %
+                static_cast<int>(numCapacity);
+   }
+
+   data[iaFront] = t;
+   ++numElements;
 }
 
 /****************************************************
@@ -411,8 +439,39 @@ void deque <T> :: push_front(const T & t)
  * Resize the deque so the numCapacity matches the newCapacity
  ***************************************************/
 template <class T>
-void deque <T> :: resize(int newCapacity) 
+void deque <T> :: resize(int newCapacity)
 {
+   // Decide what "newCapacity" should be if caller passed 0 or negative
+   if (newCapacity <= 0)
+   {
+      if (numCapacity == 0)
+         newCapacity = 1;
+      else
+         newCapacity = static_cast<int>(numCapacity * 2);
+   }
+
+   // Do nothing if we're already big enough
+   if (newCapacity <= static_cast<int>(numCapacity))
+      return;
+
+   // Allocate new buffer
+   T* pNew = new T[newCapacity];
+
+   // Copy existing elements in logical order so that front is at index 0
+   for (size_t id = 0; id < numElements; ++id)
+   {
+      int iaSrc = iaFromID(static_cast<int>(id));
+      pNew[id] = data[iaSrc];
+   }
+
+   // Free old buffer
+   if (data != nullptr)
+      delete [] data;
+
+   data        = pNew;
+   numCapacity = static_cast<size_t>(newCapacity);
+   iaFront     = 0;    // logical front now lives at array index 0
 }
+
 
 } // namespace custom
