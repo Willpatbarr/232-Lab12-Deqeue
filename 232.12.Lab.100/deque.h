@@ -49,27 +49,13 @@ public:
    // 
    // Construct
    //
-   deque() : data(nullptr),
-             numCapacity(0),
-             numElements(0),
-             iaFront(0)
-   {
+   deque() 
+   { 
    }
    deque(int newCapacity);
    deque(const deque <T> & rhs);
    ~deque()
-   {
-      if (numCapacity > 0)
-      {
-         assert(data != nullptr);
-         delete [] data;
-      }
-      
-      // not strictly required, but keeps things in a known state
-      data        = nullptr;
-      numCapacity = 0;
-      numElements = 0;
-      iaFront     = 0;
+   { 
    }
 
    //
@@ -133,10 +119,7 @@ private:
    // fetch array index from the deque index
    int iaFromID(int id) const
    {
-      // logical id 0..numElements-1 → physical array index with wrap
-      int ia = iaFront + id;
-      ia %= static_cast<int>(numCapacity);
-      return ia;
+      return -99;
    }
    void resize(int newCapacity = 0);
 
@@ -161,14 +144,11 @@ public:
    //
    // Construct
    //
-   iterator()
-   {
-   }
-   iterator(custom::deque<T> *pDeque, int id)
-   {
-   }
+   iterator() : id(0), pDeque(nullptr) {}
+   iterator(custom::deque<T> *pDeque, int id) : id(id), pDeque(pDeque) {}
    iterator(const iterator& rhs)
    {
+       *this = rhs;
    }
 
    //
@@ -176,21 +156,23 @@ public:
    //
    iterator& operator = (const iterator& rhs)
    {
+       this->pDeque = rhs.pDeque;
+       this->id = rhs.id;
       return *this;
    }
 
    //
    // Compare
    //
-   bool operator == (const iterator& rhs) const { return true; }
-   bool operator != (const iterator& rhs) const { return true; }
+   bool operator == (const iterator& rhs) const { return rhs.pDeque == this->pDeque; }
+   bool operator != (const iterator& rhs) const { return rhs.pDeque != this->pDeque;; }
 
    // 
    // Access
    //
    const T & operator * () const
    {
-      return *(new T);
+      return pDeque[id];
    }
    T& operator * () 
    {
@@ -202,26 +184,31 @@ public:
    //
    int operator - (iterator it) const
    {
-      return 99;
+      return id - it.id;
    }
    iterator& operator += (int offset)
    {
+       id += offset;
       return *this;
    }
    iterator& operator ++ ()
    {
+       ++id;
       return *this;
    }
    iterator operator ++ (int postfix)
    {
+       id++;
       return *this;
    }
    iterator& operator -- ()
    {
+       --id;
       return *this;
    }
    iterator  operator -- (int postfix)
    {
+       id--;
       return *this;
    }
 
@@ -238,19 +225,7 @@ private:
  ***************************************************/
 template <class T>
 deque <T> :: deque(int newCapacity)
-   : data(nullptr),
-     numCapacity(0),
-     numElements(0),
-     iaFront(0)
 {
-   assert(newCapacity >= 0);
-
-   if (newCapacity > 0)
-   {
-      numCapacity = static_cast<size_t>(newCapacity);
-      data        = new T[numCapacity];   // default-constructed slots
-      // numElements stays 0; deque is logically empty but has storage
-   }
 }
 
 /****************************************************
@@ -258,22 +233,7 @@ deque <T> :: deque(int newCapacity)
  ***************************************************/
 template <class T>
 deque <T> :: deque(const deque <T> & rhs)
-   : data(nullptr),
-     numCapacity(0),
-     numElements(0),
-     iaFront(0)
 {
-   // empty source: leave this as an empty deque
-   if (rhs.numCapacity == 0 || rhs.data == nullptr)
-      return;
-
-   numCapacity = rhs.numCapacity;
-   numElements = rhs.numElements;
-   iaFront     = rhs.iaFront;
-
-   data = new T[numCapacity];
-   for (size_t i = 0; i < numCapacity; ++i)
-      data[i] = rhs.data[i];
 }
 
 
@@ -283,44 +243,8 @@ deque <T> :: deque(const deque <T> & rhs)
 template <class T>
 deque <T> & deque <T> :: operator = (const deque <T> & rhs)
 {
-   // self-assignment guard
-   if (this == &rhs)
-      return *this;
-
-   // if source is empty, just clear destination but keep capacity
-   if (rhs.numElements == 0)
-   {
-      numElements = 0;
-      iaFront     = 0;
-      return *this;
-   }
-
-   // if we don't have enough capacity, reallocate
-   if (rhs.numElements > numCapacity)
-   {
-      if (data != nullptr)
-         delete [] data;
-
-      numCapacity = rhs.numElements;
-      data        = new T[numCapacity];
-   }
-
-   // copy elements in logical order so that our iaFront = 0
-   numElements = rhs.numElements;
-   iaFront     = 0;
-
-   for (size_t id = 0; id < rhs.numElements; ++id)
-   {
-      // logical index id → rhs array index
-      int iaSrc = (rhs.iaFront + static_cast<int>(id)) %
-                  static_cast<int>(rhs.numCapacity);
-
-      data[id] = rhs.data[iaSrc];
-   }
-
    return *this;
 }
-
 
 
 /**************************************************
@@ -330,12 +254,12 @@ deque <T> & deque <T> :: operator = (const deque <T> & rhs)
 template <class T>
 const T & deque <T> :: front() const 
 {
-   return data[iaFront];
+   return *(new T);
 }
 template <class T>
 T& deque <T> ::front()
 {
-   return data[iaFront];
+   return *(new T);
 }
 
 /**************************************************
@@ -345,16 +269,12 @@ T& deque <T> ::front()
 template <class T>
 const T & deque <T> :: back() const 
 {
-   size_t idBack = numElements - 1;
-   int ia = iaFromID(idBack);
-   return data[ia];
+   return *(new T);
 }
 template <class T>
 T& deque <T> ::back()
 {
-   size_t idBack = numElements - 1;
-   int ia = iaFromID(idBack);
-   return data[ia];
+   return *(new T);
 }
 
 /**************************************************
@@ -364,14 +284,12 @@ T& deque <T> ::back()
 template <class T>
 const T& deque <T> ::operator[](size_t index) const
 {
-   int ia = iaFromID(index);
-   return data[ia];
+   return *(new T);
 }
 template <class T>
 T& deque <T> ::operator[](size_t index)
 {
-   int ia = iaFromID(index);
-   return data[ia];
+   return *(new T);
 }
 
 /*****************************************************
@@ -394,44 +312,16 @@ void deque <T> :: pop_front()
  * DEQUE : PUSH_BACK
  ******************************************************/
 template <class T>
-void deque <T> :: push_back(const T & t)
+void deque <T> :: push_back(const T & t) 
 {
-   // Grow if we are full
-   if (numElements == numCapacity)
-      resize();   // uses default param to choose new capacity
-
-   // At this point numCapacity > 0
-   int ia = (iaFront + static_cast<int>(numElements)) %
-            static_cast<int>(numCapacity);
-
-   data[ia] = t;
-   ++numElements;
 }
 
 /******************************************************
  * DEQUE : PUSH_FRONT
  ******************************************************/
 template <class T>
-void deque <T> :: push_front(const T & t)
+void deque <T> :: push_front(const T & t) 
 {
-   // Grow if we are full
-   if (numElements == numCapacity)
-      resize();   // uses default param to grow
-
-   // If we were empty, keep iaFront at 0 (constructors should set it to 0)
-   if (numElements == 0)
-   {
-      iaFront = 0;
-   }
-   else
-   {
-      // Move front one step backward in circular fashion
-      iaFront = (iaFront - 1 + static_cast<int>(numCapacity)) %
-                static_cast<int>(numCapacity);
-   }
-
-   data[iaFront] = t;
-   ++numElements;
 }
 
 /****************************************************
@@ -439,39 +329,8 @@ void deque <T> :: push_front(const T & t)
  * Resize the deque so the numCapacity matches the newCapacity
  ***************************************************/
 template <class T>
-void deque <T> :: resize(int newCapacity)
+void deque <T> :: resize(int newCapacity) 
 {
-   // Decide what "newCapacity" should be if caller passed 0 or negative
-   if (newCapacity <= 0)
-   {
-      if (numCapacity == 0)
-         newCapacity = 1;
-      else
-         newCapacity = static_cast<int>(numCapacity * 2);
-   }
-
-   // Do nothing if we're already big enough
-   if (newCapacity <= static_cast<int>(numCapacity))
-      return;
-
-   // Allocate new buffer
-   T* pNew = new T[newCapacity];
-
-   // Copy existing elements in logical order so that front is at index 0
-   for (size_t id = 0; id < numElements; ++id)
-   {
-      int iaSrc = iaFromID(static_cast<int>(id));
-      pNew[id] = data[iaSrc];
-   }
-
-   // Free old buffer
-   if (data != nullptr)
-      delete [] data;
-
-   data        = pNew;
-   numCapacity = static_cast<size_t>(newCapacity);
-   iaFront     = 0;    // logical front now lives at array index 0
 }
-
 
 } // namespace custom
